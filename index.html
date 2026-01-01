@@ -1,0 +1,737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no, viewport-fit=cover">
+    <meta name="theme-color" content="#000000">
+    <title>PLANZY V7 - Ultimate</title>
+    <style>
+        /* --- THEME ENGINE --- */
+        :root {
+            --primary: #FF2E2E; 
+            --primary-dim: rgba(255, 46, 46, 0.2);
+            --bg: #000000;
+            --surface: #121212;
+            --surface-light: #1e1e1e;
+            --text-main: #FFFFFF;
+            --text-sub: #888;
+            --safe-bottom: env(safe-area-inset-bottom, 20px);
+            --safe-top: env(safe-area-inset-top, 20px);
+            --font: 'Inter', system-ui, sans-serif;
+        }
+
+        /* THEME CLASSES */
+        body.theme-matrix { --primary: #00FF41; --primary-dim: rgba(0,255,65,0.2); }
+        body.theme-cyber { --primary: #00E5FF; --primary-dim: rgba(0,229,255,0.2); }
+        body.theme-gold { --primary: #FFD700; --primary-dim: rgba(255,215,0,0.2); }
+
+        * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; user-select: none; }
+        body, html { margin: 0; padding: 0; width: 100%; height: 100%; background: var(--bg); font-family: var(--font); color: var(--text-main); overflow: hidden; }
+
+        /* --- LAYOUT --- */
+        .app-container { width: 100%; height: 100%; display: flex; flex-direction: column; position: relative; }
+        
+        @media (min-width: 500px) {
+            body { display: flex; justify-content: center; align-items: center; background: #111; }
+            .app-container { width: 400px; height: 850px; border-radius: 40px; border: 6px solid #333; overflow: hidden; box-shadow: 0 0 50px var(--primary-dim); }
+        }
+
+        /* --- VIEWS --- */
+        .view {
+            flex: 1; display: none; flex-direction: column; padding: 20px;
+            padding-top: calc(var(--safe-top) + 20px); padding-bottom: 90px;
+            overflow-y: auto; -webkit-overflow-scrolling: touch; scroll-behavior: smooth;
+        }
+        .view.active { display: flex; animation: fadeIn 0.3s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+
+        /* --- COMPONENTS --- */
+        h1, h2, h3 { margin: 0; font-weight: 800; letter-spacing: -0.5px; }
+        h2 { font-size: 1.8rem; margin-bottom: 5px; }
+        p { color: var(--text-sub); margin: 0 0 15px 0; font-size: 0.9rem; line-height: 1.5; }
+
+        .btn {
+            background: var(--primary); color: #000; border: none; font-weight: 800;
+            padding: 16px; border-radius: 14px; font-size: 1rem; width: 100%;
+            margin-top: 10px; box-shadow: 0 4px 15px var(--primary-dim); transition: 0.2s;
+            display: flex; justify-content: center; align-items: center; gap: 8px;
+        }
+        .btn:active { transform: scale(0.97); }
+        .btn-outline { background: transparent; border: 2px solid #333; color: var(--text-sub); box-shadow: none; }
+        
+        input, textarea {
+            width: 100%; padding: 16px; background: var(--surface-light); border: 1px solid #333;
+            color: white; border-radius: 12px; font-size: 1rem; margin-bottom: 15px; outline: none;
+            -webkit-user-select: text; user-select: text; font-family: inherit;
+        }
+        input:focus, textarea:focus { border-color: var(--primary); background: #222; }
+
+        /* --- TAB 1: HOME --- */
+        .hero-card {
+            background: linear-gradient(180deg, var(--primary-dim), transparent);
+            border: 1px solid var(--primary); padding: 20px; border-radius: 20px;
+            text-align: center; margin-bottom: 20px; position: relative; overflow: hidden;
+        }
+        .timer { font-size: 3.5rem; font-weight: 800; line-height: 1; margin: 10px 0; font-variant-numeric: tabular-nums; text-shadow: 0 0 20px var(--primary-dim); }
+        
+        .list-item {
+            background: var(--surface-light); padding: 16px; border-radius: 16px; margin-bottom: 12px;
+            display: flex; flex-direction: column; border-left: 4px solid transparent; transition: 0.2s; position: relative;
+        }
+        .list-item-header { display: flex; align-items: center; width: 100%; }
+        .list-item.done { opacity: 0.5; filter: grayscale(1); }
+        .list-item.done .task-title { text-decoration: line-through; }
+        .list-item.active { border-left-color: var(--primary); background: #222; box-shadow: 0 10px 30px -10px black; }
+        
+        .subtasks-container { margin-top: 10px; padding-top: 10px; border-top: 1px solid #333; display: none; }
+        .list-item.expanded .subtasks-container { display: block; }
+        .subtask-row { display: flex; align-items: center; gap: 10px; margin-bottom: 5px; font-size: 0.85rem; color: #aaa; }
+
+        /* --- TAB 2: CALENDAR --- */
+        .calendar-grid { display: grid; grid-template-columns: repeat(7, 1fr); gap: 5px; margin-top: 20px; }
+        .cal-day { aspect-ratio: 1; display: flex; justify-content: center; align-items: center; border-radius: 8px; font-size: 0.8rem; background: #111; position: relative; }
+        .cal-day.active { background: var(--primary); color: black; font-weight: bold; }
+        .cal-day.today { border: 2px solid var(--primary); }
+
+        /* --- TAB 3: CHAT --- */
+        #chat-box { flex: 1; overflow-y: auto; display: flex; flex-direction: column; gap: 12px; padding-bottom: 15px; }
+        .msg { max-width: 85%; padding: 12px 16px; border-radius: 18px; font-size: 0.95rem; line-height: 1.4; animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275); }
+        .msg.bot { align-self: flex-start; background: var(--surface-light); border-bottom-left-radius: 4px; color: #ddd; }
+        .msg.user { align-self: flex-end; background: var(--primary); color: black; border-bottom-right-radius: 4px; font-weight: 600; }
+        @keyframes popIn { from { opacity: 0; transform: scale(0.9); } to { opacity: 1; transform: scale(1); } }
+
+        /* --- TAB 4: SHOP & GAMIFICATION --- */
+        .xp-header { display: flex; justify-content: space-between; align-items: center; background: var(--surface-light); padding: 15px; border-radius: 16px; margin-bottom: 20px; }
+        .shop-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 15px; }
+        .shop-item { background: var(--surface-light); padding: 15px; border-radius: 14px; text-align: center; border: 1px solid #333; opacity: 0.7; }
+        .shop-item.unlocked { opacity: 1; border-color: var(--primary); }
+        .shop-item.owned { background: var(--primary-dim); }
+
+        /* --- NAV --- */
+        .nav {
+            position: absolute; bottom: 0; width: 100%; height: calc(70px + var(--safe-bottom));
+            background: rgba(10,10,10,0.95); backdrop-filter: blur(20px); border-top: 1px solid #222;
+            display: flex; justify-content: space-around; padding-top: 10px; z-index: 100;
+        }
+        .nav-item { display: flex; flex-direction: column; align-items: center; width: 20%; opacity: 0.5; transition: 0.2s; cursor: pointer; }
+        .nav-item.active { opacity: 1; color: var(--primary); transform: translateY(-3px); }
+        .nav-icon { font-size: 1.4rem; margin-bottom: 4px; }
+        .nav-label { font-size: 0.6rem; font-weight: 800; text-transform: uppercase; letter-spacing: 0.5px; }
+
+        /* --- MODALS --- */
+        .modal {
+            position: fixed; inset: 0; background: rgba(0,0,0,0.9); z-index: 200; display: none;
+            flex-direction: column; padding: 20px; padding-top: calc(var(--safe-top) + 20px);
+            backdrop-filter: blur(5px); animation: slideUp 0.3s ease;
+        }
+        .modal.open { display: flex; }
+        @keyframes slideUp { from { transform: translateY(100%); } to { transform: translateY(0); } }
+
+        /* UTILS */
+        .badge { display: inline-block; padding: 4px 8px; border-radius: 4px; font-size: 0.7rem; font-weight: 800; background: #333; margin-right: 5px; }
+        .badge.gold { background: gold; color: black; }
+    </style>
+</head>
+<body>
+
+<div class="app-container">
+    
+    <div id="view-home" class="view active">
+        <div style="display:flex; justify-content:space-between; align-items:center; margin-bottom: 15px;">
+            <div style="display:flex; align-items:center; gap:10px;">
+                <div style="width:40px; height:40px; background:var(--surface-light); border-radius:50%; display:flex; justify-content:center; align-items:center; font-size:1.2rem;">😎</div>
+                <div>
+                    <h3 id="display-name">User</h3>
+                    <div style="font-size:0.75rem; color:var(--text-sub);">Level <span id="lvl-num">1</span> Rookie</div>
+                </div>
+            </div>
+            <div style="display:flex; gap:15px;">
+                <div onclick="toggleFocusSound()" id="btn-sound" style="font-size:1.4rem; opacity:0.5; transition:0.3s;">🎧</div>
+                <div onclick="requestNotification()" style="font-size:1.4rem;">🔔</div>
+            </div>
+        </div>
+
+        <div class="hero-card">
+            <span style="background:var(--primary); color:black; font-size:0.7rem; font-weight:800; padding:4px 8px; border-radius:4px; text-transform:uppercase;">Current Objective</span>
+            <div id="live-task" style="font-size:1.4rem; margin-top:10px; font-weight:700;">Loading System...</div>
+            <div id="live-timer" class="timer">--:--</div>
+            <div style="font-size:0.8rem; opacity:0.7;" id="live-next">Up Next: ...</div>
+        </div>
+
+        <div style="display:flex; justify-content:space-between; align-items:flex-end; margin-bottom:15px;">
+            <span style="font-size:0.85rem; font-weight:800; color:#666; letter-spacing:1px; text-transform:uppercase;">Timeline</span>
+            <span style="font-size:0.85rem; color:var(--primary); font-weight:600; cursor:pointer;" onclick="openModal('modal-creator')">+ Edit Plan</span>
+        </div>
+
+        <div id="schedule-list" style="padding-bottom: 20px;"></div>
+    </div>
+
+    <div id="view-calendar" class="view">
+        <h2>Consistency Tracker</h2>
+        <p>Your streaks define you.</p>
+        
+        <div class="hero-card" style="padding:15px; display:flex; justify-content:space-around; align-items:center;">
+            <div style="text-align:center;">
+                <div style="font-size:2rem; font-weight:800; color:white;" id="cal-streak">0</div>
+                <div style="font-size:0.7rem; color:#888; text-transform:uppercase;">Day Streak</div>
+            </div>
+            <div style="width:1px; height:40px; background:#333;"></div>
+            <div style="text-align:center;">
+                <div style="font-size:2rem; font-weight:800; color:var(--primary);" id="cal-tasks">0</div>
+                <div style="font-size:0.7rem; color:#888; text-transform:uppercase;">Tasks Crushed</div>
+            </div>
+        </div>
+
+        <h3>This Month</h3>
+        <div class="calendar-grid" id="calendar-grid">
+            </div>
+        
+        <div style="margin-top: 30px;">
+            <h3>Weekly Report</h3>
+            <div style="background:var(--surface-light); padding:15px; border-radius:12px; margin-top:10px;">
+                AI Analysis: <span style="color:var(--text-sub);">You are most productive between 9 AM and 11 AM. Keep pushing!</span>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-chat" class="view">
+        <h2 style="position:sticky; top:0; background:var(--bg); padding-bottom:10px; z-index:10; border-bottom:1px solid #222; display:flex; justify-content:space-between; align-items:center;">
+            AI Dost
+            <div style="font-size:0.7rem; background:#222; padding:5px 10px; border-radius:10px; border:1px solid #333;">Humour: 50%</div>
+        </h2>
+        
+        <div id="chat-box">
+            <div class="msg bot">System Online. How are we feeling today? Stressed or Blessed?</div>
+        </div>
+        
+        <div style="display:flex; gap:10px; margin-top:auto; padding-top:10px;">
+            <button class="btn" style="width:40px; margin:0; padding:0;" onclick="startDictation()">🎤</button>
+            <input type="text" id="chat-input" placeholder="Type here..." style="margin:0;">
+            <button class="btn" style="width:50px; margin:0;" onclick="sendMsg()">➤</button>
+        </div>
+    </div>
+
+    <div id="view-shop" class="view">
+        <h2>The Black Market</h2>
+        <p>Spend XP to upgrade your interface.</p>
+        
+        <div class="xp-header">
+            <div>
+                <div style="font-size:0.8rem; color:#888;">BALANCE</div>
+                <div style="font-size:1.8rem; font-weight:800; color:var(--primary);" id="shop-xp">0 XP</div>
+            </div>
+            <button class="btn" style="width:auto; padding:8px 15px; font-size:0.8rem; margin:0;" onclick="alert('Earn XP by completing tasks!')">How to Earn?</button>
+        </div>
+
+        <h3>Themes</h3>
+        <div class="shop-grid" style="margin-top:10px;">
+            <div class="shop-item unlocked owned" onclick="setTheme('default')">
+                <div style="font-size:2rem;">🔴</div>
+                <div style="font-weight:700; margin:5px 0;">Red Core</div>
+                <div style="font-size:0.7rem;">Default</div>
+            </div>
+            <div class="shop-item" id="item-matrix" onclick="buyTheme('matrix', 500)">
+                <div style="font-size:2rem;">🟢</div>
+                <div style="font-weight:700; margin:5px 0;">Matrix</div>
+                <div style="font-size:0.7rem;">500 XP</div>
+            </div>
+            <div class="shop-item" id="item-cyber" onclick="buyTheme('cyber', 1000)">
+                <div style="font-size:2rem;">🔵</div>
+                <div style="font-weight:700; margin:5px 0;">Cyberpunk</div>
+                <div style="font-size:0.7rem;">1000 XP</div>
+            </div>
+            <div class="shop-item" id="item-gold" onclick="buyTheme('gold', 2000)">
+                <div style="font-size:2rem;">🟡</div>
+                <div style="font-weight:700; margin:5px 0;">Gold Member</div>
+                <div style="font-size:0.7rem;">2000 XP</div>
+            </div>
+        </div>
+
+        <h3 style="margin-top:20px;">Items</h3>
+        <div class="shop-item" style="margin-top:10px; opacity:1;" onclick="buyFreeze()">
+            <div style="display:flex; align-items:center; justify-content:space-between;">
+                <div style="text-align:left;">
+                    <div style="font-weight:700;">❄️ Streak Freeze</div>
+                    <div style="font-size:0.7rem;">Protect your streak for 1 day</div>
+                </div>
+                <div class="btn" style="width:auto; margin:0; padding:5px 10px; font-size:0.8rem;">300 XP</div>
+            </div>
+        </div>
+    </div>
+
+    <div id="view-settings" class="view">
+        <div style="text-align:center; padding:20px 0;">
+            <div style="width:100px; height:100px; background:#222; border-radius:50%; margin:0 auto 15px; border:2px solid var(--primary); display:flex; justify-content:center; align-items:center; font-size:3rem;">👤</div>
+            <h2 id="settings-name">User</h2>
+        </div>
+
+        <h3>Data Management</h3>
+        <button class="btn btn-outline" onclick="simulateSync()">☁️ Cloud Sync (Simulated)</button>
+        <button class="btn btn-outline" onclick="shareStats()">🚀 Share Stats Card</button>
+        <button class="btn btn-outline" onclick="exportData()">💾 Export Backup</button>
+        
+        <h3 style="margin-top:20px;">Danger Zone</h3>
+        <button class="btn" style="background:#333; color:#ff5555;" onclick="fullReset()">⚠️ Factory Reset</button>
+        
+        <p style="text-align:center; margin-top:40px; font-size:0.8rem; color:#333;">Planzy V7.0 Ultimate<br>Offline-First Architecture</p>
+    </div>
+
+    <div class="nav">
+        <div class="nav-item active" onclick="nav('view-home', this)"><div class="nav-icon">🏠</div><span class="nav-label">Home</span></div>
+        <div class="nav-item" onclick="nav('view-calendar', this)"><div class="nav-icon">📅</div><span class="nav-label">Cal</span></div>
+        <div class="nav-item" onclick="nav('view-chat', this)"><div class="nav-icon">💬</div><span class="nav-label">AI</span></div>
+        <div class="nav-item" onclick="nav('view-shop', this)"><div class="nav-icon">🛍️</div><span class="nav-label">Shop</span></div>
+        <div class="nav-item" onclick="nav('view-settings', this)"><div class="nav-icon">⚙️</div><span class="nav-label">Set</span></div>
+    </div>
+
+    <div id="modal-creator" class="modal">
+        <h2>Mission Control</h2>
+        <div style="display:grid; grid-template-columns:1fr 1fr; gap:10px;">
+            <div>
+                <label style="font-size:0.8rem; color:#888;">Wake Up</label>
+                <input type="time" id="inp-wake" value="07:00">
+            </div>
+            <div>
+                <label style="font-size:0.8rem; color:#888;">Sleep</label>
+                <input type="time" id="inp-sleep" value="23:00">
+            </div>
+        </div>
+        <label style="font-size:0.8rem; color:#888;">Tasks (Comma separated)</label>
+        <input type="text" id="inp-tasks" placeholder="Gym, Study Physics, Deep Work...">
+        
+        <div style="display:flex; align-items:center; gap:10px; margin-bottom:20px;">
+            <input type="checkbox" id="chk-routine" style="width:20px; margin:0;" checked>
+            <label for="chk-routine" style="font-size:0.9rem;">Save as Default Routine</label>
+        </div>
+
+        <div style="display:flex; gap:10px; margin-top:auto;">
+            <button class="btn btn-outline" onclick="closeModal('modal-creator')">Cancel</button>
+            <button class="btn" onclick="generatePlan()">Generate</button>
+        </div>
+    </div>
+
+    <div id="modal-edit" class="modal">
+        <h2>Edit Task</h2>
+        <input type="text" id="edit-task-name">
+        <input type="hidden" id="edit-task-index">
+        
+        <label style="font-size:0.8rem; color:#888;">Subtasks (One per line)</label>
+        <textarea id="edit-task-subs" rows="5"></textarea>
+
+        <div style="display:flex; gap:10px; margin-top:20px;">
+            <button class="btn btn-outline" onclick="closeModal('modal-edit')">Cancel</button>
+            <button class="btn" style="background:#333;" onclick="deleteTask()">Delete</button>
+            <button class="btn" onclick="saveTaskEdit()">Save</button>
+        </div>
+    </div>
+
+    <div id="modal-setup" class="modal" style="z-index:9000; background:black;">
+        <h1 style="color:var(--primary); font-size:3rem; text-align:center;">PLANZY</h1>
+        <p style="text-align:center;">V7.0 Ultimate Edition</p>
+        <input type="text" id="inp-name" placeholder="Enter your name" style="text-align:center; margin-top:30px;">
+        <button class="btn" onclick="finishSetup()">Initialize System</button>
+    </div>
+
+</div>
+
+<script>
+    // --- CORE DATA STRUCTURE ---
+    let data = {
+        name: 'User',
+        xp: 0,
+        streak: 1,
+        totalTasks: 0,
+        level: 1,
+        inventory: [], // 'matrix', 'cyber', 'freeze'
+        schedule: [], // {s, e, t, d, subs:[]}
+        badges: []
+    };
+    
+    // --- INIT ---
+    window.onload = () => {
+        const saved = localStorage.getItem('planzy_v7');
+        if(saved) {
+            data = JSON.parse(saved);
+            updateUI();
+            renderSchedule();
+            applyTheme(localStorage.getItem('planzy_theme') || 'default');
+        } else {
+            document.getElementById('modal-setup').classList.add('open');
+        }
+        
+        // Auto-fill routine if exists
+        const routine = localStorage.getItem('planzy_routine');
+        if(routine) {
+            const r = JSON.parse(routine);
+            document.getElementById('inp-wake').value = r.wake;
+            document.getElementById('inp-sleep').value = r.sleep;
+            document.getElementById('inp-tasks').value = r.tasks;
+        }
+
+        renderCalendar();
+        setInterval(tick, 1000); // Main Loop
+    };
+
+    function save() { 
+        localStorage.setItem('planzy_v7', JSON.stringify(data)); 
+        updateUI(); 
+    }
+
+    // --- MAIN LOOP ---
+    function tick() {
+        const now = new Date();
+        const min = now.getHours() * 60 + now.getMinutes();
+        const active = data.schedule.find(i => min >= i.s && min < i.e);
+
+        if(active) {
+            document.getElementById('live-task').innerText = active.t;
+            document.getElementById('live-timer').innerText = `${active.e - min}m left`;
+            
+            // Notification Trigger
+            if(min === active.s && document.hidden && Notification.permission === "granted") {
+                new Notification(`Start: ${active.t}`);
+            }
+        } else {
+            document.getElementById('live-task').innerText = "Standby / Free Time";
+            document.getElementById('live-timer').innerText = "--:--";
+        }
+    }
+
+    // --- PLANNER LOGIC ---
+    function generatePlan() {
+        const wake = parseTime(document.getElementById('inp-wake').value);
+        const sleep = parseTime(document.getElementById('inp-sleep').value);
+        const tasks = document.getElementById('inp-tasks').value.split(',').filter(t => t.trim());
+        
+        // Save Routine?
+        if(document.getElementById('chk-routine').checked) {
+            localStorage.setItem('planzy_routine', JSON.stringify({
+                wake: document.getElementById('inp-wake').value,
+                sleep: document.getElementById('inp-sleep').value,
+                tasks: document.getElementById('inp-tasks').value
+            }));
+        }
+
+        data.schedule = [];
+        let cur = wake;
+        
+        // Morning
+        data.schedule.push({ s: cur, e: cur+45, t: "Wake Up & Hydrate", d: false, subs:[] }); cur+=45;
+        
+        // Tasks
+        tasks.forEach(t => {
+            if(cur + 60 < sleep) {
+                data.schedule.push({ s: cur, e: cur+60, t: t.trim(), d: false, subs:[] }); cur+=60;
+                if(cur + 15 < sleep) {
+                    data.schedule.push({ s: cur, e: cur+15, t: "Recharge Break", d: false, subs:[] }); cur+=15;
+                }
+            }
+        });
+
+        // Wind down
+        if(cur < sleep) data.schedule.push({ s: cur, e: sleep, t: "Free Time / Sleep", d: false, subs:[] });
+        
+        save();
+        closeModal('modal-creator');
+        renderSchedule();
+    }
+
+    function renderSchedule() {
+        const list = document.getElementById('schedule-list');
+        list.innerHTML = '';
+        const now = new Date();
+        const nowMin = now.getHours() * 60 + now.getMinutes();
+
+        data.schedule.forEach((item, i) => {
+            const div = document.createElement('div');
+            div.className = `list-item ${item.d ? 'done' : ''}`;
+            if(nowMin >= item.s && nowMin < item.e && !item.d) div.classList.add('active');
+            if(item.subs && item.subs.length > 0) div.classList.add('expanded');
+
+            // Header
+            let html = `
+                <div class="list-item-header" onclick="toggleTask(${i})">
+                    <div style="width:60px; font-weight:700; color:var(--primary); font-size:0.9rem;">${formatTime(item.s)}</div>
+                    <div style="flex:1;" class="task-title">${item.t}</div>
+                    <div style="padding:10px; opacity:0.5;" onclick="event.stopPropagation(); openEdit(${i})">✎</div>
+                </div>
+            `;
+
+            // Subtasks
+            if(item.subs && item.subs.length > 0) {
+                html += `<div class="subtasks-container">`;
+                item.subs.forEach((sub, si) => {
+                    html += `
+                        <div class="subtask-row" onclick="toggleSub(${i}, ${si})">
+                            <div style="width:14px; height:14px; border:1px solid #555; background:${sub.d ? 'var(--primary)' : 'transparent'}"></div>
+                            <span style="${sub.d ? 'text-decoration:line-through; opacity:0.5' : ''}">${sub.t}</span>
+                        </div>
+                    `;
+                });
+                html += `</div>`;
+            }
+
+            div.innerHTML = html;
+            list.appendChild(div);
+        });
+    }
+
+    function toggleTask(i) {
+        data.schedule[i].d = !data.schedule[i].d;
+        if(data.schedule[i].d) {
+            addXP(50);
+            data.totalTasks++;
+            checkBadges();
+            if(navigator.vibrate) navigator.vibrate(50);
+        } else {
+            addXP(-50);
+        }
+        save(); renderSchedule();
+    }
+
+    function toggleSub(ti, si) {
+        data.schedule[ti].subs[si].d = !data.schedule[ti].subs[si].d;
+        save(); renderSchedule();
+    }
+
+    // --- EDIT SYSTEM ---
+    function openEdit(i) {
+        document.getElementById('edit-task-index').value = i;
+        document.getElementById('edit-task-name').value = data.schedule[i].t;
+        const subs = data.schedule[i].subs || [];
+        document.getElementById('edit-task-subs').value = subs.map(s => s.t).join('\n');
+        openModal('modal-edit');
+    }
+
+    function saveTaskEdit() {
+        const i = document.getElementById('edit-task-index').value;
+        const name = document.getElementById('edit-task-name').value;
+        const subRaw = document.getElementById('edit-task-subs').value;
+        
+        if(name) {
+            data.schedule[i].t = name;
+            const lines = subRaw.split('\n').filter(l => l.trim());
+            // Preserve done state if possible, else reset
+            data.schedule[i].subs = lines.map(l => ({ t: l, d: false }));
+            save(); renderSchedule(); closeModal('modal-edit');
+        }
+    }
+
+    function deleteTask() {
+        const i = document.getElementById('edit-task-index').value;
+        data.schedule.splice(i, 1);
+        save(); renderSchedule(); closeModal('modal-edit');
+    }
+
+    // --- GAMIFICATION ---
+    function addXP(amount) {
+        data.xp += amount;
+        if(data.xp < 0) data.xp = 0;
+        // Level Calc (Simple: every 1000xp)
+        data.level = Math.floor(data.xp / 1000) + 1;
+        updateUI();
+    }
+
+    function buyTheme(id, cost) {
+        if(data.inventory.includes(id)) { setTheme(id); return; }
+        if(data.xp >= cost) {
+            if(confirm(`Buy ${id} theme for ${cost} XP?`)) {
+                data.xp -= cost;
+                data.inventory.push(id);
+                setTheme(id);
+                save();
+            }
+        } else {
+            alert("Not enough XP!");
+        }
+    }
+
+    function setTheme(id) {
+        localStorage.setItem('planzy_theme', id);
+        applyTheme(id);
+    }
+    
+    function applyTheme(id) {
+        document.body.className = '';
+        if(id === 'matrix') document.body.classList.add('theme-matrix');
+        if(id === 'cyber') document.body.classList.add('theme-cyber');
+        if(id === 'gold') document.body.classList.add('theme-gold');
+        
+        // Update Shop UI
+        document.querySelectorAll('.shop-item').forEach(el => el.classList.remove('owned'));
+        if(data.inventory.includes('matrix')) document.getElementById('item-matrix').classList.add('owned', 'unlocked');
+        if(data.inventory.includes('cyber')) document.getElementById('item-cyber').classList.add('owned', 'unlocked');
+        if(data.inventory.includes('gold')) document.getElementById('item-gold').classList.add('owned', 'unlocked');
+    }
+
+    function checkBadges() {
+        const unlock = (id, txt) => {
+            if(!data.badges.includes(id)) {
+                data.badges.push(id);
+                alert(`🏆 BADGE UNLOCKED: ${txt}`);
+            }
+        };
+        // Logic
+        if(data.xp > 500) unlock('initiate', 'The Initiate');
+        if(data.streak > 7) unlock('week_warrior', 'Week Warrior');
+        const now = new Date();
+        if(now.getHours() < 6) unlock('early_bird', 'Early Bird');
+    }
+
+    // --- CHATBOT (50% HUMOR) ---
+    function sendMsg() {
+        const inp = document.getElementById('chat-input');
+        const txt = inp.value.trim();
+        if(!txt) return;
+        
+        // UI
+        const box = document.getElementById('chat-box');
+        box.innerHTML += `<div class="msg user">${txt}</div>`;
+        box.scrollTop = box.scrollHeight;
+        inp.value = '';
+
+        // Bot Logic
+        setTimeout(() => {
+            const sarcastic = Math.random() < 0.5;
+            let reply = "";
+            const t = txt.toLowerCase();
+
+            if(t.includes('gym') || t.includes('workout')) {
+                reply = sarcastic ? "Dheere uthana, toot na jaye. 😂" : "Fitness is key. Crush it.";
+            } else if(t.includes('sad') || t.includes('depress')) {
+                reply = "Hey, it's okay. Taking a break is productive too. Breathe.";
+            } else if(t.includes('motivat')) {
+                reply = sarcastic ? "Motivation fake hai, discipline asli hai. Kaam kar." : "You are capable of more than you know. Just start.";
+            } else {
+                reply = sarcastic ? "Bhai kya bol raha hai? Plan follow kar." : "I'm listening. Stay focused on your timeline.";
+            }
+            
+            box.innerHTML += `<div class="msg bot">${reply}</div>`;
+            box.scrollTop = box.scrollHeight;
+        }, 800);
+    }
+
+    // --- AUDIO (FOCUS MODE) ---
+    let audioCtx, noiseNode, isPlaying = false;
+    function toggleFocusSound() {
+        if(!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+        
+        if(isPlaying) {
+            noiseNode.disconnect(); isPlaying = false;
+            document.getElementById('btn-sound').style.opacity = '0.5';
+        } else {
+            if(audioCtx.state === 'suspended') audioCtx.resume();
+            const size = 4096;
+            noiseNode = audioCtx.createScriptProcessor(size, 1, 1);
+            noiseNode.onaudioprocess = e => {
+                const out = e.outputBuffer.getChannelData(0);
+                for(let i=0; i<size; i++) {
+                    const white = Math.random() * 2 - 1;
+                    out[i] = (lastOut + (0.02 * white)) / 1.02;
+                    lastOut = out[i];
+                    out[i] *= 3.5;
+                }
+            };
+            let lastOut = 0;
+            noiseNode.connect(audioCtx.destination);
+            isPlaying = true;
+            document.getElementById('btn-sound').style.opacity = '1';
+        }
+    }
+
+    // --- SOCIAL SHARE (CANVAS) ---
+    function shareStats() {
+        const c = document.createElement('canvas');
+        c.width = 1080; c.height = 1080;
+        const ctx = c.getContext('2d');
+        
+        ctx.fillStyle = "#000"; ctx.fillRect(0,0,1080,1080);
+        ctx.fillStyle = "#222"; ctx.fillRect(100,200,880,680); // Card bg
+        
+        ctx.fillStyle = "#FF2E2E"; ctx.font = "bold 80px Arial"; ctx.textAlign = "center";
+        ctx.fillText("PLANZY REPORT", 540, 150);
+        
+        ctx.fillStyle = "#FFF"; ctx.font = "bold 150px Arial";
+        ctx.fillText(data.streak + " DAYS", 540, 500);
+        
+        ctx.fillStyle = "#888"; ctx.font = "50px Arial";
+        ctx.fillText(`Level ${data.level}  |  ${data.xp} XP`, 540, 650);
+        
+        const link = document.createElement('a');
+        link.download = 'planzy_share.png';
+        link.href = c.toDataURL();
+        link.click();
+    }
+
+    // --- CALENDAR RENDERER ---
+    function renderCalendar() {
+        const grid = document.getElementById('calendar-grid');
+        grid.innerHTML = '';
+        const days = ['S','M','T','W','T','F','S'];
+        days.forEach(d => grid.innerHTML += `<div style="text-align:center; color:#666; font-size:0.6rem;">${d}</div>`);
+        
+        const date = new Date();
+        const dim = new Date(date.getFullYear(), date.getMonth()+1, 0).getDate();
+        
+        for(let i=1; i<=dim; i++) {
+            const isToday = i === date.getDate();
+            grid.innerHTML += `<div class="cal-day ${isToday?'today active':''}">${i}</div>`;
+        }
+        
+        document.getElementById('cal-streak').innerText = data.streak;
+        document.getElementById('cal-tasks').innerText = data.totalTasks;
+    }
+
+    // --- UTILS ---
+    function nav(id, el) {
+        document.querySelectorAll('.view').forEach(v => v.classList.remove('active'));
+        document.getElementById(id).classList.add('active');
+        document.querySelectorAll('.nav-item').forEach(n => n.classList.remove('active'));
+        el.classList.add('active');
+    }
+    
+    function updateUI() {
+        document.getElementById('display-name').innerText = data.name;
+        document.getElementById('settings-name').innerText = data.name;
+        document.getElementById('lvl-num').innerText = data.level;
+        document.getElementById('shop-xp').innerText = data.xp + ' XP';
+    }
+
+    function finishSetup() {
+        const n = document.getElementById('inp-name').value.trim();
+        if(n) data.name = n;
+        save();
+        document.getElementById('modal-setup').classList.remove('open');
+        openModal('modal-creator');
+    }
+
+    function openModal(id) { document.getElementById(id).classList.add('open'); }
+    function closeModal(id) { document.getElementById(id).classList.remove('open'); }
+    function parseTime(t) { const [h,m]=t.split(':').map(Number); return h*60+m; }
+    function formatTime(m) { let h=Math.floor(m/60), n=m%60; return `${h%12||12}:${n.toString().padStart(2,'0')} ${h>=12?'PM':'AM'}`; }
+    function simulateSync() { 
+        const btn = event.target; 
+        const old = btn.innerText; 
+        btn.innerText = "Syncing..."; 
+        setTimeout(()=>{ btn.innerText = "☁️ Synced"; setTimeout(()=>{ btn.innerText = old; }, 2000); }, 1500); 
+    }
+    function requestNotification() {
+        if(!("Notification" in window)) return alert("Not supported");
+        Notification.requestPermission().then(p => { if(p==="granted") new Notification("Planzy Connected"); });
+    }
+    function startDictation() {
+        if('webkitSpeechRecognition' in window) {
+            const r = new webkitSpeechRecognition();
+            r.onresult = e => { document.getElementById('chat-input').value = e.results[0][0].transcript; };
+            r.start();
+        } else { alert("Voice not supported on this browser."); }
+    }
+    function exportData() {
+        const s = "data:text/json;charset=utf-8," + encodeURIComponent(JSON.stringify(data));
+        const a = document.createElement('a'); a.href = s; a.download = 'planzy_backup.json'; a.click();
+    }
+    function fullReset() { if(confirm("Delete All Data?")) { localStorage.clear(); location.reload(); } }
+
+</script>
+</body>
+</html>
