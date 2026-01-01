@@ -579,37 +579,43 @@
     }
 
     // --- CHATBOT (50% HUMOR) ---
-    function sendMsg() {
-        const inp = document.getElementById('chat-input');
-        const txt = inp.value.trim();
-        if(!txt) return;
-        
-        // UI
-        const box = document.getElementById('chat-box');
-        box.innerHTML += `<div class="msg user">${txt}</div>`;
-        box.scrollTop = box.scrollHeight;
-        inp.value = '';
+    async function sendMsg() {
+  const inp = document.getElementById("chat-input");
+  const txt = inp.value.trim();
+  if (!txt) return;
 
-        // Bot Logic
-        setTimeout(() => {
-            const sarcastic = Math.random() < 0.5;
-            let reply = "";
-            const t = txt.toLowerCase();
+  const box = document.getElementById("chat-box");
 
-            if(t.includes('gym') || t.includes('workout')) {
-                reply = sarcastic ? "Dheere uthana, toot na jaye. 😂" : "Fitness is key. Crush it.";
-            } else if(t.includes('sad') || t.includes('depress')) {
-                reply = "Hey, it's okay. Taking a break is productive too. Breathe.";
-            } else if(t.includes('motivat')) {
-                reply = sarcastic ? "Motivation fake hai, discipline asli hai. Kaam kar." : "You are capable of more than you know. Just start.";
-            } else {
-                reply = sarcastic ? "Bhai kya bol raha hai? Plan follow kar." : "I'm listening. Stay focused on your timeline.";
-            }
-            
-            box.innerHTML += `<div class="msg bot">${reply}</div>`;
-            box.scrollTop = box.scrollHeight;
-        }, 800);
-    }
+  // Show user message
+  box.innerHTML += `<div class="msg user">${txt}</div>`;
+  box.scrollTop = box.scrollHeight;
+  inp.value = "";
+
+  // Typing indicator
+  const typingId = "typing-" + Date.now();
+  box.innerHTML += `<div class="msg bot" id="${typingId}">Typing...</div>`;
+  box.scrollTop = box.scrollHeight;
+
+  try {
+    const res = await fetch("https://4972fa2a-95ec-45b2-8471-941e86de0f2f-00-xbli2e18opdj.pike.replit.dev/chat", {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json"
+      },
+      body: JSON.stringify({ message: txt })
+    });
+
+    const data = await res.json();
+
+    document.getElementById(typingId).innerText =
+      data.reply || "Hmm… thoda confuse ho gaya 😅";
+
+  } catch (err) {
+    document.getElementById(typingId).innerText =
+      "Network issue bhai 😓 thoda baad try kar";
+  }
+}
+
 
     // --- AUDIO (FOCUS MODE) ---
     let audioCtx, noiseNode, isPlaying = false;
